@@ -1,7 +1,54 @@
-window.Indicators={
- ema(values,period){if(values.length<period)return null;const k=2/(period+1);let value=values.slice(0,period).reduce((a,b)=>a+b,0)/period;for(let i=period;i<values.length;i++)value=values[i]*k+value*(1-k);return value},
- rsi(values,period=14){if(values.length<=period)return 50;let gains=0,losses=0;for(let i=1;i<=period;i++){const d=values[i]-values[i-1];if(d>=0)gains+=d;else losses-=d}let ag=gains/period,al=losses/period;for(let i=period+1;i<values.length;i++){const d=values[i]-values[i-1];ag=(ag*(period-1)+Math.max(d,0))/period;al=(al*(period-1)+Math.max(-d,0))/period}if(al===0)return 100;return 100-100/(1+ag/al)},
- macd(values,fast=12,slow=26,signal=9){const emaSeries=(arr,p)=>{const k=2/(p+1);let e=arr[0],out=[e];for(let i=1;i<arr.length;i++){e=arr[i]*k+e*(1-k);out.push(e)}return out};const f=emaSeries(values,fast),s=emaSeries(values,slow),line=f.map((v,i)=>v-s[i]);const sig=emaSeries(line.slice(slow-1),signal);const value=line.at(-1)||0,signalValue=sig.at(-1)||0;return {value,signal:signalValue,hist:value-signalValue}},
- atr(data,period=14){if(data.length<period+1)return 0;const trs=[];for(let i=1;i<data.length;i++)trs.push(Math.max(data[i].high-data[i].low,Math.abs(data[i].high-data[i-1].close),Math.abs(data[i].low-data[i-1].close)));return trs.slice(-period).reduce((a,b)=>a+b,0)/Math.min(period,trs.length)},
- sma(values,period){if(values.length<period)return null;return values.slice(-period).reduce((a,b)=>a+b,0)/period}
-};
+"use strict";
+window.Indicators = (() => {
+  function emaSeries(values, period) {
+    const result = Array(values.length).fill(null);
+    if (values.length < period) return result;
+    const k = 2 / (period + 1);
+    let avg = values.slice(0, period).reduce((s, n) => s + n, 0) / period;
+    result[period - 1] = avg;
+    for (let i = period; i < values.length; i++) {
+      avg = values[i] * k + avg * (1 - k);
+      result[i] = avg;
+    }
+    return result;
+  }
+  function ema(values, period) { return emaSeries(values, period).at(-1) ?? null; }
+  function rsi(values, period = 14) {
+    if (values.length < period + 1) return null;
+    let gains = 0, losses = 0;
+    for (let i = 1; i <= period; i++) {
+      const d = values[i] - values[i - 1];
+      gains += Math.max(d, 0);
+      losses += Math.max(-d, 0);
+    }
+    let avgG = gains / period, avgL = losses / period;
+    for (let i = period + 1; i < values.length; i++) {
+      const d = values[i] - values[i - 1];
+      avgG = (avgG * (period - 1) + Math.max(d, 0)) / period;
+      avgL = (avgL * (period - 1) + Math.max(-d, 0)) / period;
+    }
+    if (avgL === 0) return avgG === 0 ? 50 : 100;
+    return 100 - 100 / (1 + avgG / avgL);
+  }
+  function macd(values, fast = 12, slow = 26, signalPeriod = 9) {
+    if (values.length < slow + signalPeriod - 1) return null;
+    const f = emaSeries(values, fast), s = emaSeries(values, slow);
+    const line = values.map((_, i) => (f[i] === null || s[i] === null) ? null : f[i] - s[i]);
+    const valid = line.filter(v => v !== null);
+    const sig = emaSeries(valid, signalPeriod).at(-1);
+    const last = line.at(-1);
+    return {value: last, signal: sig, hist: last - sig};
+  }
+  function atr(candles, period = 14) {
+    if (candles.length < period + 1) return null;
+    const tr = [];
+    for (let i = 1; i < candles.length; i++) {
+      const prev = candles[i - 1].close, c = candles[i];
+      tr.push(Math.max(c.high - c.low, Math.abs(c.high - prev), Math.abs(c.low - prev)));
+    }
+    let v = tr.slice(0, period).reduce((a, b) => a + b, 0) / period;
+    for (let i = period; i < tr.length; i++) v = (v * (period - 1) + tr[i]) / period;
+    return v;
+  }
+  return {ema, emaSeries, rsi, macd, atr};
+})();

@@ -1,1 +1,36 @@
-window.SignalEngine={analyze(data){const closes=data.map(x=>x.close),price=closes.at(-1),ema20=Indicators.ema(closes,20),ema50=Indicators.ema(closes,50),ema200=Indicators.ema(closes,200),rsi=Indicators.rsi(closes),macd=Indicators.macd(closes),atr=Indicators.atr(data);let score=50;const checks=[];function add(label,points,ok){score+=points;checks.push([label,ok])}if(ema20!==null&&price>ema20)add('Price above 20 EMA',8,true);else add('Price below / lacks 20 EMA confirmation',-8,false);if(ema50!==null&&price>ema50)add('Price above 50 EMA',10,true);else add('Price below / lacks 50 EMA confirmation',-10,false);if(ema200!==null){if(price>ema200)add('Price above 200 EMA',8,true);else add('Price below 200 EMA',-8,false)}if(rsi>52&&rsi<70)add('RSI supports positive momentum',8,true);else if(rsi<35)add('RSI is oversold (not a buy by itself)',2,true);else add('RSI not confirming bullish momentum',-3,false);if(macd.hist>0)add('MACD histogram positive',10,true);else add('MACD histogram negative',-10,false);score=Math.max(0,Math.min(100,Math.round(score)));const trend=ema20&&ema50?(price>ema20&&ema20>ema50?'Bullish':price<ema20&&ema20<ema50?'Bearish':'Mixed'):'Developing';const signal=score>=72?'POTENTIAL BUY':score<=30?'POTENTIAL SELL / EXIT':'WAIT';const recent=data.slice(-30),support=Math.min(...recent.map(x=>x.low)),resistance=Math.max(...recent.map(x=>x.high)),entry=price,stop=signal==='POTENTIAL BUY'?price-atr*1.5:price+atr*1.5,target=signal==='POTENTIAL BUY'?price+atr*3:price-atr*3;return {price,ema20,ema50,ema200,rsi,macd,atr,score,signal,trend,support,resistance,entry,stop,target,rr:atr?Math.abs(target-entry)/Math.max(Math.abs(entry-stop),1e-9):0,checks}}};
+"use strict";
+window.SignalEngine = (() => {
+  function analyze(candles) {
+    if (!Array.isArray(candles) || candles.length < 210) return {ready: false, reason: `Need 210 candles for the full indicator set; received ${candles?.length ?? 0}.`};
+    const closes = candles.map(c => c.close), price = closes.at(-1);
+    const ema20 = Indicators.ema(closes, 20), ema50 = Indicators.ema(closes, 50), ema200 = Indicators.ema(closes, 200);
+    const rsi = Indicators.rsi(closes), macd = Indicators.macd(closes), atr = Indicators.atr(candles);
+    const checks = [];
+    let score = 50;
+    const check = (title, direction, weight) => { score += direction * weight; checks.push({title, direction}); };
+    check(`Price ${price > ema20 ? 'above' : 'below'} EMA 20`, price > ema20 ? 1 : -1, 10);
+    check(`Price ${price > ema50 ? 'above' : 'below'} EMA 50`, price > ema50 ? 1 : -1, 10);
+    check(`Price ${price > ema200 ? 'above' : 'below'} EMA 200`, price > ema200 ? 1 : -1, 8);
+    check(`EMA 20 ${ema20 > ema50 ? 'above' : 'below'} EMA 50`, ema20 > ema50 ? 1 : -1, 8);
+    check(`MACD histogram ${macd.hist >= 0 ? 'positive' : 'negative'}`, macd.hist >= 0 ? 1 : -1, 9);
+    // Overbought / oversold are warnings, not automatic reversals.
+    check(`RSI ${rsi.toFixed(1)} (${rsi >= 70 ? 'overbought' : rsi <= 30 ? 'oversold' : 'neutral zone'})`, rsi > 55 ? 1 : rsi < 45 ? -1 : 0, 5);
+    score = Math.min(100, Math.max(0, Math.round(score)));
+    const trend = ema20 > ema50 && price > ema50 ? 'BULLISH' : ema20 < ema50 && price < ema50 ? 'BEARISH' : 'MIXED';
+    let signal = 'WAIT';
+    if (score >= 75 && rsi < 75 && trend === 'BULLISH') signal = 'POTENTIAL BUY';
+    if (score <= 25 && rsi > 25 && trend === 'BEARISH') signal = 'POTENTIAL SELL';
+    const previous = candles.slice(-31, -1);
+    const support = Math.min(...previous.map(c => c.low)), resistance = Math.max(...previous.map(c => c.high));
+    const direction = signal === 'POTENTIAL SELL' ? -1 : 1;
+    const entry = price;
+    // Stop uses BOTH ATR and previous swing level, with a minimum distance.
+    const volatilityStop = entry - direction * 1.5 * atr;
+    const structureStop = direction > 0 ? support : resistance;
+    const stop = direction > 0 ? Math.min(volatilityStop, structureStop) : Math.max(volatilityStop, structureStop);
+    const stopDistance = Math.abs(entry - stop);
+    const target = entry + direction * 2 * stopDistance;
+    return {ready: true, price, ema20, ema50, ema200, rsi, macd, atr, score, trend, signal, support, resistance, entry, stop, target, rr: 2, checks, stopDistance};
+  }
+  return {analyze};
+})();

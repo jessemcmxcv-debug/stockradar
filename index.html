@@ -1,14 +1,54 @@
 <!doctype html>
-<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#070a18"><title>AI Trading Radar — NASUSD.HKT</title><link rel="stylesheet" href="css/style.css"><script src="https://cdn.jsdelivr.net/npm/chart.js"></script></head>
-<body><div class="bg"></div><header class="topbar"><div class="brand"><span class="logo">✦</span><div><b>AI TRADING RADAR</b><small>Market intelligence terminal</small></div></div><div class="status"><span class="status-dot"></span><b>DEMO DATA</b><span id="lastUpdate">—</span></div></header>
-<main class="shell"><section class="hero"><div><div class="eyebrow">MONITORED INSTRUMENT</div><h1>NASUSD.HKT</h1><p class="muted">ActTrader symbol • analysis and decision support</p></div><div class="pricebox"><span id="price">—</span><span id="change" class="positive">—</span></div></section>
-<div class="notice"><b>DEMO MODE</b> — prices below are randomly generated for interface testing, not live NASUSD.HKT quotes. Connect an authorized broker feed before using signals for decisions.</div>
-<section class="grid metrics"><div class="card"><span>Signal</span><strong id="signal">WAIT</strong><small id="signalReason">Calculating…</small></div><div class="card"><span>Signal Score</span><strong id="score">—/100</strong><small>Rule-based composite</small></div><div class="card"><span>Trend</span><strong id="trend">—</strong><small>EMA structure</small></div><div class="card"><span>RSI (14)</span><strong id="rsi">—</strong><small>Momentum</small></div><div class="card"><span>MACD</span><strong id="macd">—</strong><small>Momentum confirmation</small></div><div class="card"><span>ATR estimate</span><strong id="volatility">—</strong><small>Demo volatility</small></div></section>
-<section class="panel chart-panel"><div class="panel-head"><div><h2>Price Action</h2><small>Illustrative line chart • not a live feed</small></div><div class="tabs" id="timeframes"><button class="active" data-tf="5m">5m</button><button data-tf="15m">15m</button><button data-tf="1h">1h</button><button data-tf="4h">4h</button><button data-tf="1d">1D</button></div></div><div class="chart-wrap"><canvas id="priceChart"></canvas></div></section>
-<section class="two"><div class="panel"><div class="panel-head"><h2>Technical Snapshot</h2><span class="pill" id="regime">—</span></div><div class="rows"><div><span>20 EMA</span><b id="ema20">—</b></div><div><span>50 EMA</span><b id="ema50">—</b></div><div><span>200 EMA</span><b id="ema200">—</b></div><div><span>Support estimate</span><b id="support">—</b></div><div><span>Resistance estimate</span><b id="resistance">—</b></div><div><span>Demo volume</span><b id="volume">—</b></div></div></div>
-<div class="panel"><div class="panel-head"><h2>Trade Map</h2><span class="pill">PAPER ONLY</span></div><div class="trade-map"><div><span>Potential entry</span><b id="entry">—</b></div><div><span>Invalidation estimate</span><b id="stop">—</b></div><div><span>Illustrative target</span><b id="target">—</b></div><div><span>Risk / reward</span><b id="rr">—</b></div></div><small class="muted note">These levels are calculated from demo prices and are not trade recommendations.</small></div></section>
-<section class="panel explanation"><div class="panel-head"><h2>Why This Signal?</h2><span id="setupBadge" class="pill">ANALYZING</span></div><div id="explanation" class="explain">Waiting for calculations…</div><div class="checks" id="checks"></div></section>
-<section class="two"><div class="panel"><div class="panel-head"><h2>Multi-Timeframe Bias</h2><span class="pill">DEMO ESTIMATES</span></div><div class="mtf"><div><span>5 Minute</span><b id="mtf5">—</b></div><div><span>15 Minute</span><b id="mtf15">—</b></div><div><span>1 Hour</span><b id="mtf1h">—</b></div><div><span>4 Hour</span><b id="mtf4h">—</b></div><div><span>Daily</span><b id="mtf1d">—</b></div></div></div>
-<div class="panel"><div class="panel-head"><h2>Paper Position Calculator</h2><span class="pill">SIMULATION</span></div><div class="form"><label>Starting balance <input id="balance" type="number" min="0" value="10000"></label><label>Risk per trade (%) <input id="riskPct" type="number" min="0.1" max="5" step="0.1" value="1"></label><button id="simulate">Calculate position size</button><div id="positionResult" class="position-result">Enter settings and calculate.</div></div></div></section>
-<footer><b>AI Trading Radar</b><span>Analysis only • no orders are placed • signals are not guarantees or financial advice.</span></footer></main>
-<script src="js/indicators.js"></script><script src="js/signals.js"></script><script src="js/app.js"></script></body></html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#070a18">
+  <meta name="description" content="StockRadar: transparent NASUSD.HKT technical analysis with demo, CSV and authorized broker API modes.">
+  <title>StockRadar | NASUSD.HKT</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="bg" aria-hidden="true"></div>
+<header class="topbar">
+  <div class="brand"><span class="logo">✦</span><div><b>STOCK<span class="glow">RADAR</span></b><small>Market analysis terminal · v2</small></div></div>
+  <div class="status"><span class="status-dot" id="statusDot"></span><b id="modeBadge">DEMO</b><span id="lastUpdate">Waiting for data</span></div>
+</header>
+<main class="shell">
+  <section class="hero">
+    <div><div class="eyebrow">HANKOTRADE · ACTTRADER INSTRUMENT</div><h1>NASUSD<span class="glow">.HKT</span></h1><p class="muted">Independent decision support · never submits orders</p></div>
+    <div class="pricebox"><span id="price">—</span><span id="change">—</span><small id="priceTime">No quote timestamp</small></div>
+  </section>
+  <section class="source-box panel" aria-label="Market data source">
+    <div class="source-header"><div><h2>Market data source</h2><small id="sourceDetails">Choose a data source to begin</small></div><div class="source-buttons"><button id="demoBtn" class="active" type="button">Demo</button><button id="csvBtn" type="button">Import CSV</button><button id="apiBtn" type="button">Broker API</button><input id="csvFile" type="file" accept=".csv,text/csv" hidden></div></div>
+    <div id="apiSettings" class="api-settings" hidden><label for="apiUrl">Read-only bridge URL (not broker login)</label><div class="api-controls"><input id="apiUrl" type="url" placeholder="https://your-bridge.example/api/candles" autocomplete="off" spellcheck="false"><button id="connectBtn" type="button">Connect & poll</button><button id="disconnectBtn" type="button" class="secondary">Disconnect</button></div><small>Use your own HTTPS backend. Never paste broker passwords, trading tokens, or account keys here. Bridge must return JSON in the documented format.</small></div>
+    <div id="notice" class="notice" role="status">DEMO ONLY · Generated candles. Do not use the prices or signals for trading decisions.</div>
+    <div class="source-bottom"><span id="candleInfo">—</span><div class="right-actions"><button id="exportBtn" type="button" class="mini">Export CSV</button><button id="alertsBtn" type="button" class="mini">Enable browser alerts</button></div></div>
+  </section>
+  <section class="grid metrics" aria-label="Market metrics">
+    <div class="card"><span>Market signal</span><strong id="signal">WAIT</strong><small id="signalReason">Waiting for candles</small></div>
+    <div class="card"><span>Bull / bear score</span><strong id="score">—</strong><small>0 bearish · 100 bullish</small></div>
+    <div class="card"><span>Trend</span><strong id="trend">—</strong><small>EMA structure</small></div>
+    <div class="card"><span>RSI (14)</span><strong id="rsi">—</strong><small>Price momentum</small></div>
+    <div class="card"><span>MACD</span><strong id="macd">—</strong><small>12 / 26 / 9</small></div>
+    <div class="card"><span>ATR (14)</span><strong id="volatility">—</strong><small>Wilder volatility</small></div>
+  </section>
+  <section class="panel chart-panel">
+    <div class="panel-head"><div><h2>Market candlesticks <span id="tfLabel" class="pill">5m</span></h2><small id="chartSubtitle">OHLC candles, 20 & 50 EMA</small></div><div class="tabs" id="timeframes"><button type="button" data-tf="5m" class="active">5m</button><button type="button" data-tf="15m">15m</button><button type="button" data-tf="1h">1h</button><button type="button" data-tf="4h">4h</button><button type="button" data-tf="1d">1D</button></div></div>
+    <div class="chart-wrap"><canvas id="priceChart" aria-label="Candlestick price chart"></canvas><div class="chart-tooltip" id="chartTooltip" hidden></div></div>
+    <div class="legend"><span><i class="candle-up"></i> Up candle</span><span><i class="candle-down"></i> Down candle</span><span><i class="line20"></i> EMA 20</span><span><i class="line50"></i> EMA 50</span></div>
+  </section>
+  <section class="two">
+    <div class="panel"><div class="panel-head"><h2>Technical snapshot</h2><span id="regime" class="pill">—</span></div><div class="rows"><div><span>20 EMA</span><b id="ema20">—</b></div><div><span>50 EMA</span><b id="ema50">—</b></div><div><span>200 EMA</span><b id="ema200">—</b></div><div><span>Previous 30-candle support</span><b id="support">—</b></div><div><span>Previous 30-candle resistance</span><b id="resistance">—</b></div><div><span>Data freshness</span><b id="freshness">—</b></div></div></div>
+    <div class="panel"><div class="panel-head"><h2>Illustrative trade map</h2><span class="pill">PAPER ONLY</span></div><div class="trade-map"><div><span>Reference entry</span><b id="entry">—</b></div><div><span>Potential invalidation</span><b id="stop">—</b></div><div><span>2R illustrative target</span><b id="target">—</b></div><div><span>Risk / reward</span><b id="rr">—</b></div></div><small class="muted note">Uses ATR and technical levels, not broker execution prices, spread or slippage. No order recommendations.</small></div>
+  </section>
+  <section class="panel explanation"><div class="panel-head"><h2>Why this signal?</h2><span id="setupBadge" class="pill">WAIT</span></div><div id="explanation" class="explain">Load candle data to start.</div><div class="checks" id="checks"></div></section>
+  <section class="two">
+    <div class="panel"><div class="panel-head"><h2>Multi-timeframe bias</h2><span class="pill">Calculated from candles</span></div><div class="mtf"><div><span>5 Minute</span><b id="mtf5m">—</b></div><div><span>15 Minute</span><b id="mtf15m">—</b></div><div><span>1 Hour</span><b id="mtf1h">—</b></div><div><span>4 Hour</span><b id="mtf4h">—</b></div><div><span>Daily</span><b id="mtf1d">—</b></div></div><small class="note muted">Unanswered timeframes show INSUFFICIENT, never fabricated confirmations.</small></div>
+    <div class="panel"><div class="panel-head"><h2>Paper risk calculator</h2><span class="pill">SIMULATION</span></div><form id="riskForm" class="form"><label>Account balance ($)<input id="balance" type="number" min="0.01" step="any" value="10000" required></label><label>Risk per trade (%)<input id="riskPct" type="number" min="0.01" max="5" step="0.01" value="1" required></label><label>Value per point per lot ($)<input id="pointValue" type="number" min="0.0001" step="any" placeholder="Confirm with broker" required></label><button type="submit">Calculate paper lots</button><div id="positionResult" class="position-result">Enter the contract's actual USD-per-point-per-lot value from Hankotrade before calculating.</div></form></div>
+  </section>
+  <section class="panel"><div class="panel-head"><h2>Signal event log</h2><button id="clearLogBtn" class="mini" type="button">Clear</button></div><div id="eventLog" class="event-log">No signal changes recorded.</div></section>
+  <footer><b>StockRadar v2</b><span>Educational analysis only · No automated trades · No prediction is guaranteed · Demo / CSV / API sources explicitly labelled</span></footer>
+</main>
+<script src="indicators.js"></script><script src="signals.js"></script><script src="data.js"></script><script src="chart.js"></script><script src="app.js"></script>
+</body></html>
